@@ -154,6 +154,8 @@ func (e *ToolExecutor) Execute(ctx context.Context, name string, input json.RawM
 		return e.push(ctx, input)
 	case "create_pr":
 		return e.createPR(ctx, input)
+	case "get_pr":
+		return e.getPR(ctx, input)
 
 	// Project Intelligence
 	case "get_guidelines":
@@ -419,6 +421,22 @@ func (e *ToolExecutor) createPR(ctx context.Context, input json.RawMessage) (str
 	}
 
 	return git.FormatPR(pr), nil
+}
+
+func (e *ToolExecutor) getPR(ctx context.Context, input json.RawMessage) (string, error) {
+	var params struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(input, &params); err != nil {
+		return "", err
+	}
+
+	pr, err := e.github.GetPRForReview(ctx, params.URL)
+	if err != nil {
+		return "", err
+	}
+
+	return git.FormatPRForReview(pr), nil
 }
 
 func (e *ToolExecutor) getGuidelines() (string, error) {

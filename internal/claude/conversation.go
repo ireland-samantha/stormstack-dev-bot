@@ -133,7 +133,9 @@ func (m *ConversationManager) processWithToolLoop(
 		for _, block := range response.Content {
 			switch b := block.AsAny().(type) {
 			case anthropic.TextBlock:
-				assistantContent = append(assistantContent, anthropic.NewTextBlock(b.Text))
+				if b.Text != "" {
+					assistantContent = append(assistantContent, anthropic.NewTextBlock(b.Text))
+				}
 			case anthropic.ToolUseBlock:
 				assistantContent = append(assistantContent, anthropic.ContentBlockParamOfRequestToolUseBlock(b.ID, b.Input, b.Name))
 			}

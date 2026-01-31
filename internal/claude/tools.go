@@ -31,6 +31,7 @@ func GetAllTools() []anthropic.ToolUnionParam {
 		CommitTool(),
 		PushTool(),
 		CreatePRTool(),
+		GetPRTool(),
 
 		// Project Intelligence
 		GetGuidelinesTool(),
@@ -372,6 +373,21 @@ func CreatePRTool() anthropic.ToolUnionParam {
 			},
 		},
 		[]string{"title", "body"},
+	)
+}
+
+// GetPRTool returns the get_pr tool definition.
+func GetPRTool() anthropic.ToolUnionParam {
+	return makeTool(
+		"get_pr",
+		"Get details about a GitHub pull request including title, description, and diff. Use this to review PRs when given a PR URL or number.",
+		map[string]any{
+			"url": map[string]any{
+				"type":        "string",
+				"description": "The PR URL (e.g., https://github.com/owner/repo/pull/123) or just the PR number if in the same repo",
+			},
+		},
+		[]string{"url"},
 	)
 }
 

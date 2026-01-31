@@ -221,3 +221,110 @@ func FormatPR(pr *PRInfo) string {
 	sb.WriteString(fmt.Sprintf("Branch: %s → %s\n", pr.HeadRef, pr.BaseRef))
 	return sb.String()
 }
+
+// GetPRDiff gets the diff for a pull request.
+func (g *GitHub) GetPRDiff(ctx context.Context, prRef string) (string, error) {
+	output, err := g.runGH(ctx, "pr", "diff", prRef)
+	if err != nil {
+		return "", err
+	}
+	return output, nil
+}
+
+// GetPRComments gets the review comments on a pull request.
+func (g *GitHub) GetPRComments(ctx context.Context, prRef string) (string, error) {
+	output, err := g.runGH(ctx, "pr", "view", prRef, "--comments")
+	if err != nil {
+		return "", err
+	}
+	return output, nil
+}
+
+// GetPRFiles gets the list of files changed in a pull request.
+func (g *GitHub) GetPRFiles(ctx context.Context, prRef string) ([]string, error) {
+	output, err := g.runGH(ctx, "pr", "diff", prRef, "--name-only")
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if line != "" {
+			files = append(files, line)
+		}
+	}
+	return files, nil
+}
+
+// PRDetails contains full PR information for review.
+type PRDetails struct {
+	Info         *PRInfo
+	Diff         string
+	FilesChanged []string
+}
+
+// GetPRForReview gets comprehensive PR details for code review.
+func (g *GitHub) GetPRForReview(ctx context.Context, prRef string) (*PRDetails, error) {
+	// Get basic PR info
+	output, err := g.runGH(ctx, "pr", "view", prRef, "--json",
+		"number,title,url,state,headRefName,baseRefName,body,createdAt,author")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get PR info: %w", err)
+	}
+
+	var info PRInfo
+	if err := json.Unmarshal([]byte(output), &info); err != nil {
+		return nil, fmt.Errorf("failed to parse PR info: %w", err)
+	}
+
+	// Get diff
+	diff, err := g.GetPRDiff(ctx, prRef)
+	if err != nil {
+		diff = "Failed to get diff: " + err.Error()
+	}
+
+	// Get files changed
+	files, _ := g.GetPRFiles(ctx, prRef)
+
+	return &PRDetails{
+		Info:         &info,
+		Diff:         diff,
+		FilesChanged: files,
+	}, nil
+}
+
+// FormatPRForReview formats PR details for code review.
+func FormatPRForReview(pr *PRDetails) string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("# PR #%d: %s\n\n", pr.Info.Number, pr.Info.Title))
+	sb.WriteString(fmt.Sprintf("**URL:** %s\n", pr.Info.URL))
+	sb.WriteString(fmt.Sprintf("**State:** %s\n", pr.Info.State))
+	sb.WriteString(fmt.Sprintf("**Branch:** %s → %s\n", pr.Info.HeadRef, pr.Info.BaseRef))
+	sb.WriteString(fmt.Sprintf("**Author:** %s\n\n", pr.Info.Author))
+
+	if pr.Info.Body != "" {
+		sb.WriteString("## Description\n\n")
+		sb.WriteString(pr.Info.Body)
+		sb.WriteString("\n\n")
+	}
+
+	if len(pr.FilesChanged) > 0 {
+		sb.WriteString("## Files Changed\n\n")
+		for _, f := range pr.FilesChanged {
+			sb.WriteString("- " + f + "\n")
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("## Diff\n\n```diff\n")
+	// Truncate diff if too long
+	diff := pr.Diff
+	if len(diff) > 50000 {
+		diff = diff[:50000] + "\n... (diff truncated, too large)"
+	}
+	sb.WriteString(diff)
+	sb.WriteString("\n```\n")
+
+	return sb.String()
+}

@@ -11,7 +11,7 @@ import (
 
 const (
 	// ModelOpus is Claude Opus 4.5 model ID.
-	ModelOpus = "claude-opus-4-5-20250514"
+	ModelOpus = "claude-opus-4-5-20251101"
 	// MaxTokens is the maximum number of tokens for responses.
 	MaxTokens = 8192
 )
