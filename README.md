@@ -1,6 +1,8 @@
 # StormStack Dev Bot
 
 A Slack-based AI pair programming bot powered by Claude Opus. Works with any Git repository - either your local checkout or a sandboxed clone.
+I asked Claude to build this so I can chat with it over Slack and mentor it while I'm not physicsally at my workstation. I run this on my computer and 
+chat to it in a private Slack server.
 
 ## Features
 
